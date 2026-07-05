@@ -6,6 +6,8 @@ import 'firebase_options.dart';
 import 'services/auth_service.dart';
 import 'repositories/user_repository.dart';
 import 'models/user_model.dart';
+import 'repositories/home_repository.dart';
+import 'models/home_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,7 +16,7 @@ void main() async {
   // Connect to local emulators (development only)
   await FirebaseAuth.instance.useAuthEmulator('localhost', 9099);
   FirebaseFirestore.instance.useFirestoreEmulator('localhost', 8080);
-
+  
   runApp(const MyApp());
 }
 
