@@ -10,6 +10,7 @@ import 'repositories/home_repository.dart';
 import 'models/home_model.dart';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart' as app_auth;
+import 'screens/auth_gate.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,7 +19,7 @@ void main() async {
   // Connect to local emulators (development only)
   await FirebaseAuth.instance.useAuthEmulator('localhost', 9099);
   FirebaseFirestore.instance.useFirestoreEmulator('localhost', 8080);
-  
+
   runApp(
     ChangeNotifierProvider(
       create: (_) => app_auth.AuthProvider(),
@@ -33,11 +34,11 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'OORJA',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const AuthGate(),
     );
   }
 }
