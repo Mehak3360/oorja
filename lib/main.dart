@@ -8,6 +8,8 @@ import 'repositories/user_repository.dart';
 import 'models/user_model.dart';
 import 'repositories/home_repository.dart';
 import 'models/home_model.dart';
+import 'package:provider/provider.dart';
+import 'providers/auth_provider.dart' as app_auth;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,7 +19,12 @@ void main() async {
   await FirebaseAuth.instance.useAuthEmulator('localhost', 9099);
   FirebaseFirestore.instance.useFirestoreEmulator('localhost', 8080);
   
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => app_auth.AuthProvider(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
