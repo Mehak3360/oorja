@@ -2,12 +2,37 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart' as app_auth;
 import '../repositories/home_repository.dart';
+import 'splash_screen.dart';
 
-class AuthGate extends StatelessWidget {
+class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
 
   @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  bool _showSplash = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Show splash for 2 seconds, then move to routing logic
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() {
+          _showSplash = false;
+        });
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_showSplash) {
+      return const SplashScreen();
+    }
+
     final authProvider = context.watch<app_auth.AuthProvider>();
 
     // Not logged in -> show placeholder Login screen
