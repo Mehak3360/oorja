@@ -50,12 +50,12 @@ class _SplashScreenState extends State<SplashScreen>
             Positioned(
               top: -60,
               left: -60,
-              child: _glowBlob(AppTheme.primaryBlue.withOpacity(0.12), 220),
+              child: _glowBlob(AppTheme.primaryBlue.withValues(alpha: 0.12), 220),
             ),
             Positioned(
               bottom: -80,
               right: -60,
-              child: _glowBlob(AppTheme.accentBlue.withOpacity(0.1), 260),
+              child: _glowBlob(AppTheme.accentBlue.withValues(alpha: 0.1), 260),
             ),
 
             // Glass card
@@ -75,15 +75,15 @@ class _SplashScreenState extends State<SplashScreen>
                           horizontal: 32,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.03),
+                          color: Colors.white.withValues(alpha: 0.03),
                           borderRadius: BorderRadius.circular(28),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.15),
+                            color: Colors.white.withValues(alpha: 0.15),
                             width: 1.2,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: AppTheme.primaryBlue.withOpacity(0.15),
+                              color: AppTheme.primaryBlue.withValues(alpha: 0.15),
                               blurRadius: 40,
                               spreadRadius: 4,
                             ),
@@ -100,8 +100,8 @@ class _SplashScreenState extends State<SplashScreen>
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                   colors: [
-                                    AppTheme.primaryBlue.withOpacity(0.3),
-                                    AppTheme.accentBlue.withOpacity(0.1),
+                                    AppTheme.primaryBlue.withValues(alpha: 0.3),
+                                    AppTheme.accentBlue.withValues(alpha: 0.1),
                                   ],
                                 ),
                               ),
@@ -152,7 +152,7 @@ class _SplashScreenState extends State<SplashScreen>
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: RadialGradient(
-          colors: [color, color.withOpacity(0)],
+          colors: [color, color.withValues(alpha: 0)],
         ),
       ),
     );
