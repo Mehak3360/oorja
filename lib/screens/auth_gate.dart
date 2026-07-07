@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart' as app_auth;
 import '../repositories/home_repository.dart';
 import 'splash_screen.dart';
+import 'login_screen.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -37,9 +38,7 @@ class _AuthGateState extends State<AuthGate> {
 
     // Not logged in -> show placeholder Login screen
     if (authProvider.currentUser == null) {
-      return const Scaffold(
-        body: Center(child: Text('LOGIN SCREEN (placeholder)')),
-      );
+      return const LoginScreen();
     }
 
     // Logged in -> check if home setup is complete
