@@ -4,6 +4,7 @@ import '../providers/auth_provider.dart' as app_auth;
 import '../providers/room_provider.dart';
 import '../theme/app_theme.dart';
 import 'room_details_screen.dart';
+import '../repositories/appliance_repository.dart';
 
 class RoomsScreen extends StatefulWidget {
   const RoomsScreen({super.key});
@@ -134,29 +135,56 @@ class _RoomsScreenState extends State<RoomsScreen> {
                         },
                         child: Padding(
                           padding: const EdgeInsets.all(16),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.meeting_room_outlined,
-                                  size: 36, color: AppTheme.primaryBlue),
-                              const SizedBox(height: 12),
-                              Text(
-                                room.name,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  color: AppTheme.textPrimary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                room.type,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppTheme.textSecondary,
-                                ),
-                              ),
-                            ],
+                          child: StreamBuilder<List<dynamic>>(
+                            stream: ApplianceRepository().watchAppliances(room.roomId),
+                            builder: (context, snapshot) {
+                              final appliances = snapshot.data ?? [];
+                              final count = appliances.length;
+                              final totalUnits = appliances.fold<double>(
+                                0,
+                                (sum, a) => sum + (a.monthlyUnits as double),
+                              );
+
+                              return Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.meeting_room_outlined,
+                                      size: 36, color: AppTheme.primaryBlue),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    room.name,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      color: AppTheme.textPrimary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    room.type,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppTheme.textSecondary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    '$count appliance${count == 1 ? '' : 's'}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: AppTheme.accentBlue,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${totalUnits.toStringAsFixed(1)} units/mo',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: AppTheme.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
                           ),
                         ),
                       ),
