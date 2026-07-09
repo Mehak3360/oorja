@@ -26,4 +26,8 @@ class ApplianceProvider extends ChangeNotifier {
   Future<void> deleteAppliance(String applianceId) async {
     await _applianceRepository.deleteAppliance(applianceId);
   }
+
+  Future<void> updateAppliance(String applianceId, Map<String, dynamic> data) async {
+    await _applianceRepository.updateAppliance(applianceId, data);
+  }
 }

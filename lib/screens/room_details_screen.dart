@@ -159,6 +159,135 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
     );
   }
 
+  void _showEditApplianceDialog(BuildContext context, ApplianceModel appliance) {
+    final nameController = TextEditingController(text: appliance.name);
+    final quantityController = TextEditingController(text: appliance.quantity.toString());
+    final wattageController = TextEditingController(text: appliance.wattage.toString());
+    final hoursController = TextEditingController(text: appliance.hoursPerDay.toString());
+    final daysController = TextEditingController(text: appliance.daysPerWeek.toString());
+    String selectedCategory = appliance.category;
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            return AlertDialog(
+              backgroundColor: AppTheme.cardBackground,
+              title: const Text('Edit Appliance', style: TextStyle(color: AppTheme.textPrimary)),
+              content: SingleChildScrollView(
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: nameController,
+                        style: const TextStyle(color: AppTheme.textPrimary),
+                        decoration: const InputDecoration(labelText: 'Appliance Name'),
+                        validator: (value) =>
+                            (value == null || value.isEmpty) ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedCategory,
+                        dropdownColor: AppTheme.cardBackground,
+                        style: const TextStyle(color: AppTheme.textPrimary),
+                        decoration: const InputDecoration(labelText: 'Category'),
+                        items: _categories.map((cat) {
+                          return DropdownMenuItem(value: cat, child: Text(cat));
+                        }).toList(),
+                        onChanged: (value) {
+                          setDialogState(() => selectedCategory = value!);
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: quantityController,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(color: AppTheme.textPrimary),
+                        decoration: const InputDecoration(labelText: 'Quantity'),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) return 'Required';
+                          if (int.tryParse(value) == null) return 'Enter a whole number';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: wattageController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        style: const TextStyle(color: AppTheme.textPrimary),
+                        decoration: const InputDecoration(labelText: 'Wattage (W)'),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) return 'Required';
+                          if (double.tryParse(value) == null) return 'Enter a valid number';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: hoursController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        style: const TextStyle(color: AppTheme.textPrimary),
+                        decoration: const InputDecoration(labelText: 'Hours Used Per Day'),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) return 'Required';
+                          if (double.tryParse(value) == null) {
+                            return 'Enter a valid number (e.g. 6 or 6.5)';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: daysController,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(color: AppTheme.textPrimary),
+                        decoration: const InputDecoration(labelText: 'Days Used Per Week'),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) return 'Required';
+                          if (int.tryParse(value) == null) return 'Enter a whole number';
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    if (!formKey.currentState!.validate()) return;
+
+                    await context.read<ApplianceProvider>().updateAppliance(
+                      appliance.applianceId,
+                      {
+                        'name': nameController.text.trim(),
+                        'category': selectedCategory,
+                        'quantity': int.parse(quantityController.text.trim()),
+                        'wattage': double.parse(wattageController.text.trim()),
+                        'hoursPerDay': double.parse(hoursController.text.trim()),
+                        'daysPerWeek': int.parse(daysController.text.trim()),
+                      },
+                    );
+                    if (dialogContext.mounted) Navigator.pop(dialogContext);
+                  },
+                  child: const Text('Save', style: TextStyle(color: AppTheme.accentBlue)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final applianceProvider = context.watch<ApplianceProvider>();
@@ -233,8 +362,9 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                             color: AppTheme.cardBackground,
                             margin: const EdgeInsets.only(bottom: 12),
                             child: ListTile(
-                              leading: const Icon(Icons.electrical_services,
-                                  color: AppTheme.primaryBlue),
+                                onTap: () => _showEditApplianceDialog(context, appliance),
+                                leading: const Icon(Icons.electrical_services,
+                                    color: AppTheme.primaryBlue),
                               title: Text(
                                 appliance.name,
                                 style: const TextStyle(
@@ -256,6 +386,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                             ),
                           );
                         },
+
                       ),
           ),
         ],
