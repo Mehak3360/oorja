@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/appliance_provider.dart';
+import '../providers/auth_provider.dart' as app_auth;
+import '../repositories/home_repository.dart';
 import '../models/appliance_model.dart';
 import '../models/room_model.dart';
 import '../theme/app_theme.dart';
@@ -160,51 +162,104 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final applianceProvider = context.watch<ApplianceProvider>();
+    final uid = context.read<app_auth.AuthProvider>().currentUser!.uid;
 
     return Scaffold(
       backgroundColor: AppTheme.navyBackground,
       appBar: AppBar(title: Text(widget.room.name)),
-      body: applianceProvider.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : applianceProvider.appliances.isEmpty
-              ? Center(
-                  child: Text(
-                    'No appliances yet.\nTap + to add one.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: AppTheme.textSecondary),
-                  ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: applianceProvider.appliances.length,
-                  itemBuilder: (context, index) {
-                    final appliance = applianceProvider.appliances[index];
-                    return Card(
-                      color: AppTheme.cardBackground,
-                      margin: const EdgeInsets.only(bottom: 12),
-                      child: ListTile(
-                        leading: const Icon(Icons.electrical_services, color: AppTheme.primaryBlue),
-                        title: Text(
-                          appliance.name,
-                          style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600),
-                        ),
-                        subtitle: Text(
-                          '${appliance.category} • Qty: ${appliance.quantity} • '
-                          '${appliance.monthlyUnits.toStringAsFixed(1)} units/month',
-                          style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
-                        ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                          onPressed: () async {
-                            await context
-                                .read<ApplianceProvider>()
-                                .deleteAppliance(appliance.applianceId);
-                          },
-                        ),
-                      ),
-                    );
-                  },
+      body: Column(
+        children: [
+          FutureBuilder(
+            future: HomeRepository().getHome(uid),
+            builder: (context, homeSnapshot) {
+              final tariff = homeSnapshot.data?.tariffPerUnit ?? 0;
+              final totalUnits = applianceProvider.appliances.fold<double>(
+                0,
+                (sum, a) => sum + a.monthlyUnits,
+              );
+              final totalCost = totalUnits * tariff;
+
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                color: AppTheme.cardBackground,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    Column(
+                      children: [
+                        Text('${totalUnits.toStringAsFixed(1)}',
+                            style: const TextStyle(
+                                color: AppTheme.textPrimary,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold)),
+                        Text('units/month',
+                            style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                      ],
+                    ),
+                    Column(
+                      children: [
+                        Text('₹${totalCost.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                                color: AppTheme.primaryBlue,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold)),
+                        Text('monthly cost',
+                            style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                      ],
+                    ),
+                  ],
                 ),
+              );
+            },
+          ),
+          Expanded(
+            child: applianceProvider.isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : applianceProvider.appliances.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No appliances yet.\nTap + to add one.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: AppTheme.textSecondary),
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: applianceProvider.appliances.length,
+                        itemBuilder: (context, index) {
+                          final appliance = applianceProvider.appliances[index];
+                          return Card(
+                            color: AppTheme.cardBackground,
+                            margin: const EdgeInsets.only(bottom: 12),
+                            child: ListTile(
+                              leading: const Icon(Icons.electrical_services,
+                                  color: AppTheme.primaryBlue),
+                              title: Text(
+                                appliance.name,
+                                style: const TextStyle(
+                                    color: AppTheme.textPrimary, fontWeight: FontWeight.w600),
+                              ),
+                              subtitle: Text(
+                                '${appliance.category} • Qty: ${appliance.quantity} • '
+                                '${appliance.monthlyUnits.toStringAsFixed(1)} units/month',
+                                style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                              ),
+                              trailing: IconButton(
+                                icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                                onPressed: () async {
+                                  await context
+                                      .read<ApplianceProvider>()
+                                      .deleteAppliance(appliance.applianceId);
+                                },
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddApplianceDialog(context),
         backgroundColor: AppTheme.primaryBlue,

@@ -5,6 +5,7 @@ import '../providers/room_provider.dart';
 import '../theme/app_theme.dart';
 import 'room_details_screen.dart';
 import '../repositories/appliance_repository.dart';
+import '../repositories/home_repository.dart';
 
 class RoomsScreen extends StatefulWidget {
   const RoomsScreen({super.key});
@@ -135,54 +136,72 @@ class _RoomsScreenState extends State<RoomsScreen> {
                         },
                         child: Padding(
                           padding: const EdgeInsets.all(16),
-                          child: StreamBuilder<List<dynamic>>(
-                            stream: ApplianceRepository().watchAppliances(room.roomId),
-                            builder: (context, snapshot) {
-                              final appliances = snapshot.data ?? [];
-                              final count = appliances.length;
-                              final totalUnits = appliances.fold<double>(
-                                0,
-                                (sum, a) => sum + (a.monthlyUnits as double),
-                              );
+                          child: FutureBuilder(
+                            future: HomeRepository().getHome(
+                              context.read<app_auth.AuthProvider>().currentUser!.uid,
+                            ),
+                            builder: (context, homeSnapshot) {
+                              final tariff = homeSnapshot.data?.tariffPerUnit ?? 0;
 
-                              return Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.meeting_room_outlined,
-                                      size: 36, color: AppTheme.primaryBlue),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    room.name,
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      color: AppTheme.textPrimary,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    room.type,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: AppTheme.textSecondary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    '$count appliance${count == 1 ? '' : 's'}',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: AppTheme.accentBlue,
-                                    ),
-                                  ),
-                                  Text(
-                                    '${totalUnits.toStringAsFixed(1)} units/mo',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: AppTheme.textSecondary,
-                                    ),
-                                  ),
-                                ],
+                              return StreamBuilder<List<dynamic>>(
+                                stream: ApplianceRepository().watchAppliances(room.roomId),
+                                builder: (context, snapshot) {
+                                  final appliances = snapshot.data ?? [];
+                                  final count = appliances.length;
+                                  final totalUnits = appliances.fold<double>(
+                                    0,
+                                    (sum, a) => sum + (a.monthlyUnits as double),
+                                  );
+                                  final totalCost = totalUnits * tariff;
+
+                                  return Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(Icons.meeting_room_outlined,
+                                          size: 36, color: AppTheme.primaryBlue),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        room.name,
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                          color: AppTheme.textPrimary,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        room.type,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: AppTheme.textSecondary,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        '$count appliance${count == 1 ? '' : 's'}',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: AppTheme.accentBlue,
+                                        ),
+                                      ),
+                                      Text(
+                                        '${totalUnits.toStringAsFixed(1)} units/mo',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: AppTheme.textSecondary,
+                                        ),
+                                      ),
+                                      Text(
+                                        '₹${totalCost.toStringAsFixed(0)}/mo',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: AppTheme.primaryBlue,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
                               );
                             },
                           ),
