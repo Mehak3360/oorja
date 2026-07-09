@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'providers/auth_provider.dart' as app_auth;
 import 'screens/auth_gate.dart';
-
+import 'providers/home_setup_provider.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -16,8 +16,11 @@ void main() async {
   FirebaseFirestore.instance.useFirestoreEmulator('localhost', 8080);
 
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => app_auth.AuthProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => app_auth.AuthProvider()),
+        ChangeNotifierProvider(create: (_) => HomeSetupProvider()),
+      ],
       child: const MyApp(),
     ),
   );

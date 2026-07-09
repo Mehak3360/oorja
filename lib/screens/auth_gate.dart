@@ -4,6 +4,7 @@ import '../providers/auth_provider.dart' as app_auth;
 import '../repositories/home_repository.dart';
 import 'splash_screen.dart';
 import 'login_screen.dart';
+import 'home_setup_screen.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -54,9 +55,7 @@ class _AuthGateState extends State<AuthGate> {
         final setupDone = snapshot.data ?? false;
 
         if (!setupDone) {
-          return const Scaffold(
-            body: Center(child: Text('HOME SETUP SCREEN (placeholder)')),
-          );
+          return const HomeSetupScreen();
         }
 
         return const Scaffold(
