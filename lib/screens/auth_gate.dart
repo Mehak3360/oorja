@@ -6,6 +6,8 @@ import 'splash_screen.dart';
 import 'login_screen.dart';
 import 'home_setup_screen.dart';
 import 'rooms_screen.dart';
+import 'dashboard_screen.dart';
+import 'main_navigation.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -59,7 +61,7 @@ class _AuthGateState extends State<AuthGate> {
           return const HomeSetupScreen();
         }
 
-        return const RoomsScreen();
+       return const MainNavigation();
       },
     );
   }

@@ -26,5 +26,18 @@ class ApplianceRepository {
             .map((doc) => ApplianceModel.fromMap(
                 doc.data() as Map<String, dynamic>, doc.id))
             .toList());
+
   }
+  Stream<List<ApplianceModel>> watchAllAppliancesForHome(List<String> roomIds) {
+      if (roomIds.isEmpty) {
+        return Stream.value([]);
+      }
+      return _appliances
+          .where('roomId', whereIn: roomIds)
+          .snapshots()
+          .map((snapshot) => snapshot.docs
+              .map((doc) => ApplianceModel.fromMap(
+                  doc.data() as Map<String, dynamic>, doc.id))
+              .toList());
+    }
 }

@@ -28,4 +28,8 @@ class AuthService {
   }
 
   String? get currentUserId => _auth.currentUser?.uid;
+
+  Future<void> updateEmail(String newEmail) async {
+    await _auth.currentUser!.verifyBeforeUpdateEmail(newEmail);
+  }
 }
