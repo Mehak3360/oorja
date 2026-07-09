@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart' as app_auth;
 import '../providers/room_provider.dart';
 import '../theme/app_theme.dart';
+import 'room_details_screen.dart';
 
 class RoomsScreen extends StatefulWidget {
   const RoomsScreen({super.key});
@@ -121,7 +122,12 @@ class _RoomsScreenState extends State<RoomsScreen> {
                       child: InkWell(
                         borderRadius: BorderRadius.circular(16),
                         onTap: () {
-                          // TODO: navigate to Room Details screen (next task)
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => RoomDetailsScreen(room: room),
+                            ),
+                          );
                         },
                         onLongPress: () async {
                           await context.read<RoomProvider>().deleteRoom(room.roomId);
