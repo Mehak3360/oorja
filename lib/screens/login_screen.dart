@@ -42,6 +42,73 @@ class _LoginScreenState extends State<LoginScreen> {
     // If success, AuthGate automatically switches screens via authStateChanges listener
   }
 
+  void _showForgotPasswordDialog(BuildContext context) {
+    final emailController = TextEditingController();
+    final authProvider = context.read<app_auth.AuthProvider>();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: AppTheme.cardBackground,
+          title: const Text(
+            'Reset Password',
+            style: TextStyle(color: AppTheme.textPrimary),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Enter your email and we\'ll send you a link to reset your password.',
+                style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
+                style: const TextStyle(color: AppTheme.textPrimary),
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  prefixIcon: Icon(Icons.email_outlined, color: AppTheme.textSecondary),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+            ),
+            TextButton(
+              onPressed: () async {
+                if (emailController.text.trim().isEmpty) return;
+
+                final success = await authProvider.resetPassword(
+                  emailController.text.trim(),
+                );
+
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        success
+                            ? 'Password reset email sent!'
+                            : (authProvider.errorMessage ?? 'Failed to send reset email'),
+                      ),
+                      backgroundColor: success ? Colors.green : Colors.redAccent,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Send', style: TextStyle(color: AppTheme.accentBlue)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<app_auth.AuthProvider>();
@@ -127,12 +194,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 12),
 
                   // Forgot password
+                  // Forgot password
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
-                      onPressed: () {
-                        // TODO: navigate to forgot password screen/dialog
-                      },
+                      onPressed: () => _showForgotPasswordDialog(context),
                       child: const Text(
                         'Forgot Password?',
                         style: TextStyle(color: AppTheme.accentBlue),
