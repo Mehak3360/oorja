@@ -7,6 +7,7 @@ import 'firebase_options.dart';
 import 'providers/auth_provider.dart' as app_auth;
 import 'screens/auth_gate.dart';
 import 'providers/home_setup_provider.dart';
+import 'providers/room_provider.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -20,6 +21,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => app_auth.AuthProvider()),
         ChangeNotifierProvider(create: (_) => HomeSetupProvider()),
+        ChangeNotifierProvider(create: (_) => RoomProvider()),
       ],
       child: const MyApp(),
     ),

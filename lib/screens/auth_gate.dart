@@ -5,6 +5,7 @@ import '../repositories/home_repository.dart';
 import 'splash_screen.dart';
 import 'login_screen.dart';
 import 'home_setup_screen.dart';
+import 'rooms_screen.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -58,9 +59,7 @@ class _AuthGateState extends State<AuthGate> {
           return const HomeSetupScreen();
         }
 
-        return const Scaffold(
-          body: Center(child: Text('DASHBOARD (placeholder)')),
-        );
+        return const RoomsScreen();
       },
     );
   }
