@@ -39,4 +39,9 @@ class CalculationEngine {
     double score = 100 - (budgetRatio * 40) - (applianceCount * 0.5);
     return score.clamp(0, 100);
   }
+
+  static double carbonFootprintKg(double monthlyUnits) {
+    // Approx India grid emission factor: 0.82 kg CO2 per kWh
+    return monthlyUnits * 0.82;
+  }
 }

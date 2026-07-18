@@ -12,6 +12,7 @@ import 'providers/appliance_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'services/gemini_service.dart';
 import 'providers/insights_provider.dart';
+import 'providers/report_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,6 +33,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => RoomProvider()),
         ChangeNotifierProvider(create: (_) => ApplianceProvider()),
         ChangeNotifierProvider(create: (_) => InsightsProvider()),
+        ChangeNotifierProvider(create: (_) => ReportProvider()),
       ],
       child: const MyApp(),
     ),
