@@ -26,14 +26,10 @@ class InsightsProvider extends ChangeNotifier {
         return;
       }
 
-      // Get rooms (one-time fetch using first value from stream)
-     final rooms = await RoomRepository().watchRooms(uid).first;
-      print('DEBUG: Rooms found = ${rooms.length}, uid = $uid');
+      final rooms = await RoomRepository().watchRooms(uid).first;
       final roomIds = rooms.map((r) => r.roomId).toList();
-      print('DEBUG: Room IDs = $roomIds');
       final appliances =
           await ApplianceRepository().watchAllAppliancesForHome(roomIds).first;
-      print('DEBUG: Appliances found = ${appliances.length}');
 
       final totalUnits = CalculationEngine.totalMonthlyUnits(appliances);
       final totalCost = CalculationEngine.totalMonthlyCost(appliances, home.tariffPerUnit);
