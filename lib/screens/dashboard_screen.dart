@@ -9,6 +9,9 @@ import '../models/room_model.dart';
 import '../models/appliance_model.dart';
 import '../utils/calculation_engine.dart';
 import '../theme/app_theme.dart';
+import 'package:fl_chart/fl_chart.dart';
+import '../repositories/daily_usage_repository.dart';
+import '../models/daily_usage_model.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -51,6 +54,9 @@ class DashboardScreen extends StatelessWidget {
                   );
                   final topAppliances = CalculationEngine.topConsumers(appliances, 5);
                   final roomWise = CalculationEngine.roomWiseConsumption(rooms, appliances);
+
+                  // Log today's usage snapshot (fire and forget)
+                  DailyUsageRepository().logTodayUsage(uid, totalUnits, totalCost);
 
                   return SingleChildScrollView(
                     padding: const EdgeInsets.all(16),
@@ -164,14 +170,22 @@ class DashboardScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 20),
-
                         // Room-wise consumption
                         Text('Room-wise Consumption',
                             style: TextStyle(
                                 fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
                         const SizedBox(height: 12),
-                        if (roomWise.isEmpty)
-                          Text('No rooms yet', style: TextStyle(color: AppTheme.textSecondary))
+                        if (roomWise.isEmpty || roomWise.values.every((v) => v == 0))
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: AppTheme.cardBackground,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Text('No consumption data yet',
+                                style: TextStyle(color: AppTheme.textSecondary)),
+                          )
                         else
                           Container(
                             padding: const EdgeInsets.all(16),
@@ -180,42 +194,152 @@ class DashboardScreen extends StatelessWidget {
                               borderRadius: BorderRadius.circular(16),
                             ),
                             child: Column(
-                              children: roomWise.entries.map((entry) {
-                                final maxUnits = roomWise.values.isEmpty
-                                    ? 1.0
-                                    : roomWise.values.reduce((a, b) => a > b ? a : b);
-                                final barWidth = maxUnits > 0 ? entry.value / maxUnits : 0.0;
-
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 6),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(entry.key,
-                                              style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
-                                          Text('${entry.value.toStringAsFixed(0)} units',
-                                              style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 4),
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.circular(6),
-                                        child: LinearProgressIndicator(
-                                          value: barWidth,
-                                          minHeight: 8,
-                                          backgroundColor: Colors.white.withValues(alpha: 0.08),
-                                          color: AppTheme.accentBlue,
-                                        ),
-                                      ),
-                                    ],
+                              children: [
+                                SizedBox(
+                                  height: 200,
+                                  child: PieChart(
+                                    PieChartData(
+                                      sectionsSpace: 2,
+                                      centerSpaceRadius: 40,
+                                      sections: _buildPieSections(roomWise),
+                                    ),
                                   ),
-                                );
-                              }).toList(),
+                                ),
+                                const SizedBox(height: 16),
+                                Wrap(
+                                  spacing: 16,
+                                  runSpacing: 8,
+                                  children: roomWise.entries.toList().asMap().entries.map((entry) {
+                                    final index = entry.key;
+                                    final roomName = entry.value.key;
+                                    final colors = [
+                                      AppTheme.primaryBlue,
+                                      AppTheme.accentBlue,
+                                      Colors.tealAccent,
+                                      Colors.orangeAccent,
+                                      Colors.purpleAccent,
+                                      Colors.pinkAccent,
+                                    ];
+                                    final color = colors[index % colors.length];
+
+                                    return Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          width: 10,
+                                          height: 10,
+                                          decoration: BoxDecoration(
+                                            color: color,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(roomName,
+                                            style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                                      ],
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
                             ),
                           ),
+                        const SizedBox(height: 20),
+
+                        // Weekly usage trend
+                        Text('This Week\'s Usage',
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
+                        const SizedBox(height: 12),
+                        FutureBuilder<List<DailyUsageModel>>(
+                          future: DailyUsageRepository().getLastNDays(uid, 7),
+                          builder: (context, weekSnapshot) {
+                            if (!weekSnapshot.hasData) {
+                              return const Center(child: CircularProgressIndicator());
+                            }
+                            final weekData = weekSnapshot.data!;
+                            final weekTotal = weekData.fold<double>(0, (sum, d) => sum + d.units);
+                            final maxUnits = weekData.isEmpty
+                                ? 1.0
+                                : weekData.map((d) => d.units).reduce((a, b) => a > b ? a : b);
+
+                            return Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: AppTheme.cardBackground,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${weekTotal.toStringAsFixed(1)} units this week',
+                                    style: const TextStyle(
+                                        color: AppTheme.textPrimary,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  SizedBox(
+                                    height: 150,
+                                    child: BarChart(
+                                      BarChartData(
+                                        maxY: maxUnits <= 0 ? 10 : maxUnits * 1.2,
+                                        barTouchData: BarTouchData(enabled: false),
+                                        titlesData: FlTitlesData(
+                                          leftTitles: const AxisTitles(
+                                            sideTitles: SideTitles(showTitles: false),
+                                          ),
+                                          topTitles: const AxisTitles(
+                                            sideTitles: SideTitles(showTitles: false),
+                                          ),
+                                          rightTitles: const AxisTitles(
+                                            sideTitles: SideTitles(showTitles: false),
+                                          ),
+                                          bottomTitles: AxisTitles(
+                                            sideTitles: SideTitles(
+                                              showTitles: true,
+                                              getTitlesWidget: (value, meta) {
+                                                final index = value.toInt();
+                                                if (index < 0 || index >= weekData.length) {
+                                                  return const SizedBox();
+                                                }
+                                                final dateParts = weekData[index].date.split('-');
+                                                final day = dateParts.length == 3 ? dateParts[2] : '';
+                                                return Padding(
+                                                  padding: const EdgeInsets.only(top: 6),
+                                                  child: Text(
+                                                    day,
+                                                    style: TextStyle(
+                                                        color: AppTheme.textSecondary, fontSize: 10),
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                        ),
+                                        borderData: FlBorderData(show: false),
+                                        gridData: const FlGridData(show: false),
+                                        barGroups: List.generate(weekData.length, (index) {
+                                          return BarChartGroupData(
+                                            x: index,
+                                            barRods: [
+                                              BarChartRodData(
+                                                toY: weekData[index].units,
+                                                color: AppTheme.primaryBlue,
+                                                width: 18,
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                            ],
+                                          );
+                                        }),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
                         const SizedBox(height: 20),
 
                         // Top appliances
@@ -274,5 +398,34 @@ class DashboardScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  List<PieChartSectionData> _buildPieSections(Map<String, double> roomWise) {
+    final colors = [
+      AppTheme.primaryBlue,
+      AppTheme.accentBlue,
+      Colors.tealAccent,
+      Colors.orangeAccent,
+      Colors.purpleAccent,
+      Colors.pinkAccent,
+    ];
+    final total = roomWise.values.fold<double>(0, (sum, v) => sum + v);
+    final entries = roomWise.entries.toList();
+
+    return List.generate(entries.length, (index) {
+      final value = entries[index].value;
+      final percentage = total > 0 ? (value / total * 100) : 0;
+      return PieChartSectionData(
+        value: value,
+        color: colors[index % colors.length],
+        title: '${percentage.toStringAsFixed(0)}%',
+        radius: 60,
+        titleStyle: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
+      );
+    });
   }
 }

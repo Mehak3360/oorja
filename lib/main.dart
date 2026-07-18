@@ -9,13 +9,20 @@ import 'screens/auth_gate.dart';
 import 'providers/home_setup_provider.dart';
 import 'providers/room_provider.dart';
 import 'providers/appliance_provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'services/gemini_service.dart';
+import 'providers/insights_provider.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Connect to local emulators (development only)
   await FirebaseAuth.instance.useAuthEmulator('localhost', 9099);
   FirebaseFirestore.instance.useFirestoreEmulator('localhost', 8080);
+
+  
 
   runApp(
     MultiProvider(
@@ -24,6 +31,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => HomeSetupProvider()),
         ChangeNotifierProvider(create: (_) => RoomProvider()),
         ChangeNotifierProvider(create: (_) => ApplianceProvider()),
+        ChangeNotifierProvider(create: (_) => InsightsProvider()),
       ],
       child: const MyApp(),
     ),

@@ -3,6 +3,7 @@ import '../theme/app_theme.dart';
 import 'dashboard_screen.dart';
 import 'rooms_screen.dart';
 import 'profile_screen.dart';
+import 'insights_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -17,7 +18,7 @@ class _MainNavigationState extends State<MainNavigation> {
   final List<Widget> _screens = [
     const DashboardScreen(),
     const RoomsScreen(),
-    const _PlaceholderScreen(title: 'Insights'),
+    const InsightsScreen(),
     const ProfileScreen(),
   ];
 
