@@ -7,6 +7,8 @@ import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../models/user_model.dart';
 import '../models/home_model.dart';
+import '../utils/demo_data_generator.dart';
+
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -91,6 +93,49 @@ class ProfileScreen extends StatelessWidget {
                 },
                 icon: const Icon(Icons.edit_outlined, color: AppTheme.accentBlue),
                 label: const Text('Edit Home Details', style: TextStyle(color: AppTheme.accentBlue)),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (dialogContext) => AlertDialog(
+                      backgroundColor: AppTheme.cardBackground,
+                      title: const Text('Generate Demo Data', style: TextStyle(color: AppTheme.textPrimary)),
+                      content: Text(
+                        'This will add 6 rooms and ~20 appliances with realistic usage data to your home. Continue?',
+                        style: TextStyle(color: AppTheme.textSecondary),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(dialogContext, false),
+                          child: Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(dialogContext, true),
+                          child: const Text('Generate', style: TextStyle(color: AppTheme.accentBlue)),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirm == true && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Generating demo data...')),
+                    );
+                    await DemoDataGenerator.generate(uid);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Demo data generated successfully!'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  }
+                },
+                icon: const Icon(Icons.auto_awesome_outlined, color: Colors.orangeAccent),
+                label: const Text('Generate Demo Data', style: TextStyle(color: Colors.orangeAccent)),
               ),
               const SizedBox(height: 24),
               ElevatedButton.icon(

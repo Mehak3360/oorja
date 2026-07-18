@@ -304,11 +304,22 @@ class DashboardScreen extends StatelessWidget {
                                                   return const SizedBox();
                                                 }
                                                 final dateParts = weekData[index].date.split('-');
-                                                final day = dateParts.length == 3 ? dateParts[2] : '';
+                                                if (dateParts.length != 3) return const SizedBox();
+
+                                                final date = DateTime(
+                                                  int.parse(dateParts[0]),
+                                                  int.parse(dateParts[1]),
+                                                  int.parse(dateParts[2]),
+                                                );
+                                                const dayNames = [
+                                                  'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'
+                                                ];
+                                                final dayLabel = dayNames[date.weekday - 1];
+
                                                 return Padding(
                                                   padding: const EdgeInsets.only(top: 6),
                                                   child: Text(
-                                                    day,
+                                                    dayLabel,
                                                     style: TextStyle(
                                                         color: AppTheme.textSecondary, fontSize: 10),
                                                   ),
