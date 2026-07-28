@@ -12,6 +12,7 @@ import '../theme/app_theme.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../repositories/daily_usage_repository.dart';
 import '../models/daily_usage_model.dart';
+import 'energy_report_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -376,6 +377,19 @@ class DashboardScreen extends StatelessWidget {
                               ),
                             );
                           }),
+                        const SizedBox(height: 20),
+
+                        // Generate Report button
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const EnergyReportScreen()),
+                            );
+                          },
+                          icon: const Icon(Icons.description_outlined),
+                          label: const Text('Generate Energy Report'),
+                        ),
                         const SizedBox(height: 24),
                       ],
                     ),
