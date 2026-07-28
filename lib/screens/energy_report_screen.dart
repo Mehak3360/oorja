@@ -4,6 +4,7 @@ import '../providers/auth_provider.dart' as app_auth;
 import '../providers/report_provider.dart';
 import '../repositories/home_repository.dart';
 import '../theme/app_theme.dart';
+import '../services/pdf_service.dart';
 
 class EnergyReportScreen extends StatefulWidget {
   const EnergyReportScreen({super.key});
@@ -32,6 +33,16 @@ class _EnergyReportScreenState extends State<EnergyReportScreen> {
       appBar: AppBar(
         title: const Text('Energy Report'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf_outlined),
+            onPressed: reportProvider.currentReport == null
+                ? null
+                : () async {
+                    final uid = context.read<app_auth.AuthProvider>().currentUser!.uid;
+                    final home = await HomeRepository().getHome(uid);
+                    await PdfService().generateAndShareReport(reportProvider.currentReport!, home);
+                  },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: reportProvider.isGenerating
