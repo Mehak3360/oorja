@@ -132,7 +132,34 @@ class _RoomsScreenState extends State<RoomsScreen> {
                           );
                         },
                         onLongPress: () async {
-                          await context.read<RoomProvider>().deleteRoom(room.roomId);
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (dialogContext) => AlertDialog(
+                              backgroundColor: AppTheme.cardBackground,
+                              title: const Text('Delete Room?',
+                                  style: TextStyle(color: AppTheme.textPrimary)),
+                              content: Text(
+                                'This will delete "${room.name}" and all its appliances. This cannot be undone.',
+                                style: TextStyle(color: AppTheme.textSecondary),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(dialogContext, false),
+                                  child: Text('Cancel',
+                                      style: TextStyle(color: AppTheme.textSecondary)),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(dialogContext, true),
+                                  child: const Text('Delete',
+                                      style: TextStyle(color: Colors.redAccent)),
+                                ),
+                              ],
+                            ),
+                          );
+
+                          if (confirm == true && context.mounted) {
+                            await context.read<RoomProvider>().deleteRoom(room.roomId);
+                          }
                         },
                         child: Padding(
                           padding: const EdgeInsets.all(16),
