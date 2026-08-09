@@ -10,7 +10,6 @@ import 'providers/home_setup_provider.dart';
 import 'providers/room_provider.dart';
 import 'providers/appliance_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'services/gemini_service.dart';
 import 'providers/insights_provider.dart';
 import 'providers/report_provider.dart';
 
@@ -19,9 +18,6 @@ void main() async {
   await dotenv.load(fileName: ".env");
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Connect to local emulators (development only)
-  await FirebaseAuth.instance.useAuthEmulator('localhost', 9099);
-  FirebaseFirestore.instance.useFirestoreEmulator('localhost', 8080);
 
   
 

@@ -1,5 +1,7 @@
 import '../models/appliance_model.dart';
 import '../models/room_model.dart';
+import 'electricity_providers.dart';
+import '../models/home_model.dart';
 
 class CalculationEngine {
   static double totalMonthlyUnits(List<ApplianceModel> appliances) {
@@ -43,5 +45,16 @@ class CalculationEngine {
   static double carbonFootprintKg(double monthlyUnits) {
     // Approx India grid emission factor: 0.82 kg CO2 per kWh
     return monthlyUnits * 0.82;
+  }
+
+  static double calculateElectricityCost(List<ApplianceModel> appliances, HomeModel home) {
+    final totalUnits = totalMonthlyUnits(appliances);
+    final provider = ElectricityProviders.getByName(home.electricityProvider);
+
+    if (provider != null && provider.slabs.isNotEmpty) {
+      return ElectricityProviders.calculateSlabCost(provider, totalUnits);
+    }
+    // Fallback: flat tariff (used for "Other / Custom" or unmatched provider)
+    return totalUnits * home.tariffPerUnit;
   }
 }

@@ -5,7 +5,7 @@ import '../repositories/room_repository.dart';
 import '../repositories/appliance_repository.dart';
 import '../utils/calculation_engine.dart';
 import '../models/report_model.dart';
-import '../services/gemini_service.dart';
+import '../services/ai_insights_service.dart';
 
 class ReportProvider extends ChangeNotifier {
   ReportModel? currentReport;
@@ -37,7 +37,7 @@ class ReportProvider extends ChangeNotifier {
       final roomWise = CalculationEngine.roomWiseConsumption(rooms, appliances);
       final top5 = CalculationEngine.topConsumers(appliances, 5);
 
-      final recommendations = await GeminiService().generateRecommendations(
+      final recommendations = await AiInsightsService().generateRecommendations(
         home: home,
         rooms: rooms,
         appliances: appliances,

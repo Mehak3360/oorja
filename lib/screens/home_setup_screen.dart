@@ -5,6 +5,7 @@ import '../providers/home_setup_provider.dart';
 import '../models/home_model.dart';
 import '../theme/app_theme.dart';
 import 'auth_gate.dart';
+import '../utils/electricity_providers.dart';
 
 class HomeSetupScreen extends StatefulWidget {
   const HomeSetupScreen({super.key});
@@ -17,7 +18,6 @@ class _HomeSetupScreenState extends State<HomeSetupScreen> {
   final _formKey = GlobalKey<FormState>();
 
   final _cityController = TextEditingController();
-  final _providerController = TextEditingController();
   final _budgetController = TextEditingController();
   final _tariffController = TextEditingController();
   final _familyMembersController = TextEditingController();
@@ -25,10 +25,11 @@ class _HomeSetupScreenState extends State<HomeSetupScreen> {
   String _selectedHouseType = '2BHK';
   final List<String> _houseTypes = ['1BHK', '2BHK', '3BHK', 'Villa', 'Independent House'];
 
+  String _selectedProvider = ElectricityProviders.names.first;
+
   @override
   void dispose() {
     _cityController.dispose();
-    _providerController.dispose();
     _budgetController.dispose();
     _tariffController.dispose();
     _familyMembersController.dispose();
@@ -47,16 +48,17 @@ class _HomeSetupScreenState extends State<HomeSetupScreen> {
       houseType: _selectedHouseType,
       familyMembers: int.parse(_familyMembersController.text.trim()),
       city: _cityController.text.trim(),
-      electricityProvider: _providerController.text.trim(),
+      electricityProvider: _selectedProvider,
       monthlyBudget: double.parse(_budgetController.text.trim()),
-      tariffPerUnit: double.parse(_tariffController.text.trim()),
+      tariffPerUnit: _selectedProvider == 'Other / Custom'
+          ? double.parse(_tariffController.text.trim())
+          : 0,
       setupComplete: true,
     );
 
     final success = await homeSetupProvider.submitHomeSetup(uid, home);
 
     if (success && mounted) {
-      // Force AuthGate to rebuild fresh, so it re-checks isSetupComplete
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const AuthGate()),
@@ -156,16 +158,19 @@ class _HomeSetupScreenState extends State<HomeSetupScreen> {
                 const SizedBox(height: 16),
 
                 // Electricity Provider
-                TextFormField(
-                  controller: _providerController,
+                DropdownButtonFormField<String>(
+                  initialValue: _selectedProvider,
+                  dropdownColor: AppTheme.cardBackground,
                   style: const TextStyle(color: AppTheme.textPrimary),
                   decoration: const InputDecoration(
                     labelText: 'Electricity Provider',
                     prefixIcon: Icon(Icons.bolt_outlined, color: AppTheme.textSecondary),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) return 'Required';
-                    return null;
+                  items: ElectricityProviders.names.map((name) {
+                    return DropdownMenuItem(value: name, child: Text(name));
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() => _selectedProvider = value!);
                   },
                 ),
                 const SizedBox(height: 16),
@@ -187,22 +192,25 @@ class _HomeSetupScreenState extends State<HomeSetupScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Tariff per unit
-                TextFormField(
-                  controller: _tariffController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  style: const TextStyle(color: AppTheme.textPrimary),
-                  decoration: const InputDecoration(
-                    labelText: 'Electricity Tariff (₹ per unit)',
-                    prefixIcon: Icon(Icons.receipt_long_outlined, color: AppTheme.textSecondary),
+                // Tariff per unit — only shown for "Other / Custom" provider
+                if (_selectedProvider == 'Other / Custom')
+                  TextFormField(
+                    controller: _tariffController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    style: const TextStyle(color: AppTheme.textPrimary),
+                    decoration: const InputDecoration(
+                      labelText: 'Electricity Tariff (₹ per unit)',
+                      prefixIcon: Icon(Icons.receipt_long_outlined, color: AppTheme.textSecondary),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) return 'Required';
+                      if (double.tryParse(value) == null) return 'Enter a valid amount';
+                      return null;
+                    },
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) return 'Required';
-                    if (double.tryParse(value) == null) return 'Enter a valid amount';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 32),
+                if (_selectedProvider == 'Other / Custom') const SizedBox(height: 16),
+
+                const SizedBox(height: 16),
 
                 ElevatedButton(
                   onPressed: homeSetupProvider.isLoading ? null : _handleSubmit,

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import '../services/gemini_service.dart';
+import '../services/ai_insights_service.dart';
 import '../repositories/home_repository.dart';
 import '../repositories/room_repository.dart';
 import '../repositories/appliance_repository.dart';
 import '../utils/calculation_engine.dart';
 
 class InsightsProvider extends ChangeNotifier {
-  final GeminiService _geminiService = GeminiService();
+  final AiInsightsService _aiInsightsService = AiInsightsService();
 
   List<String> recommendations = [];
   bool isLoading = false;
@@ -34,7 +34,7 @@ class InsightsProvider extends ChangeNotifier {
       final totalUnits = CalculationEngine.totalMonthlyUnits(appliances);
       final totalCost = CalculationEngine.totalMonthlyCost(appliances, home.tariffPerUnit);
 
-      final result = await _geminiService.generateRecommendations(
+      final result = await _aiInsightsService.generateRecommendations(
         home: home,
         rooms: rooms,
         appliances: appliances,
