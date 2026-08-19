@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart' as app_auth;
 import '../providers/insights_provider.dart';
 import '../theme/app_theme.dart';
+import '../theme/glass_card.dart';
 
 class InsightsScreen extends StatefulWidget {
   const InsightsScreen({super.key});
@@ -33,9 +34,8 @@ class _InsightsScreenState extends State<InsightsScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: insightsProvider.isLoading
-                ? null
-                : () => insightsProvider.refresh(uid),
+            onPressed:
+                insightsProvider.isLoading ? null : () => insightsProvider.refresh(uid),
           ),
         ],
       ),
@@ -48,41 +48,64 @@ class _InsightsScreenState extends State<InsightsScreen> {
                     child: Text(
                       'Error: ${insightsProvider.errorMessage}',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.redAccent),
+                      style: const TextStyle(color: AppTheme.danger),
                     ),
                   ),
                 )
               : insightsProvider.recommendations.isEmpty
                   ? Center(
-                      child: Text(
-                        'No insights yet.\nAdd some appliances first.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: AppTheme.textSecondary),
+                      child: Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.auto_awesome_outlined, color: AppTheme.textMuted, size: 40),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'No insights yet',
+                              style: TextStyle(
+                                  color: AppTheme.textPrimary,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Add appliances to your rooms to get personalized energy-saving recommendations.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                            ),
+                          ],
+                        ),
                       ),
                     )
-                  : ListView.builder(
+                  : ListView.separated(
                       padding: const EdgeInsets.all(16),
                       itemCount: insightsProvider.recommendations.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
-                        return Card(
-                          color: AppTheme.cardBackground,
-                          margin: const EdgeInsets.only(bottom: 12),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Icon(Icons.lightbulb_outline,
-                                    color: AppTheme.primaryBlue),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    insightsProvider.recommendations[index],
-                                    style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
-                                  ),
+                        final color =
+                            AppTheme.chartPalette[index % AppTheme.chartPalette.length];
+                        return GlassCard(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: color.withValues(alpha: 0.16),
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
-                              ],
-                            ),
+                                child: Icon(Icons.lightbulb_rounded, color: color, size: 18),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Text(
+                                  insightsProvider.recommendations[index],
+                                  style: const TextStyle(
+                                      color: AppTheme.textPrimary, fontSize: 14, height: 1.4),
+                                ),
+                              ),
+                            ],
                           ),
                         );
                       },

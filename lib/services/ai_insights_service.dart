@@ -79,7 +79,7 @@ class AiInsightsService {
     required double estimatedMonthlyUnits,
   }) {
     final applianceList = appliances
-        .map((a) => a.name + ' (' + a.category + ', ' + a.quantity.toString() + 'x, ' + a.wattage.toString() + 'W, ' + a.hoursPerDay.toString() + 'hrs/day)')
+        .map((a) => '${a.name} (${a.category}, ${a.quantity}x, ${a.wattage}W, ${a.hoursPerDay}hrs/day)')
         .join(', ');
 
     final benchmarkData = ApplianceBenchmarks.getRelevantBenchmarks(
@@ -93,14 +93,14 @@ class AiInsightsService {
     buffer.writeln(benchmarkData);
     buffer.writeln();
     buffer.writeln('Home details:');
-    buffer.writeln('- House type: ' + home.houseType);
-    buffer.writeln('- Family members: ' + home.familyMembers.toString());
-    buffer.writeln('- City: ' + home.city);
-    buffer.writeln('- Monthly budget: Rs. ' + home.monthlyBudget.toString());
-    buffer.writeln('- Estimated monthly bill: Rs. ' + estimatedMonthlyBill.toStringAsFixed(0));
-    buffer.writeln('- Estimated monthly units: ' + estimatedMonthlyUnits.toStringAsFixed(0) + ' kWh');
-    buffer.writeln('- Number of rooms: ' + rooms.length.toString());
-    buffer.writeln('- Appliances: ' + applianceList);
+    buffer.writeln('- House type: ${home.houseType}');
+    buffer.writeln('- Family members: ${home.familyMembers}');
+    buffer.writeln('- City: ${home.city}');
+    buffer.writeln('- Monthly budget: Rs. ${home.monthlyBudget}');
+    buffer.writeln('- Estimated monthly bill: Rs. ${estimatedMonthlyBill.toStringAsFixed(0)}');
+    buffer.writeln('- Estimated monthly units: ${estimatedMonthlyUnits.toStringAsFixed(0)} kWh');
+    buffer.writeln('- Number of rooms: ${rooms.length}');
+    buffer.writeln('- Appliances: $applianceList');
     buffer.writeln();
     buffer.writeln('Give exactly 4 short, practical recommendations to help this household save energy and reduce their bill.');
     buffer.writeln('Each recommendation should be one sentence, actionable, and specific to their appliances/usage.');
@@ -120,11 +120,7 @@ class AiInsightsService {
       final ratio = estimatedMonthlyBill / home.monthlyBudget;
       if (ratio > 1.0) {
         recommendations.add(
-          'Your estimated bill of Rs. ' +
-              estimatedMonthlyBill.toStringAsFixed(0) +
-              ' exceeds your budget of Rs. ' +
-              home.monthlyBudget.toStringAsFixed(0) +
-              ' - consider reducing usage on your highest-consuming appliances.',
+          'Your estimated bill of Rs. ${estimatedMonthlyBill.toStringAsFixed(0)} exceeds your budget of Rs. ${home.monthlyBudget.toStringAsFixed(0)} - consider reducing usage on your highest-consuming appliances.',
         );
       } else if (ratio > 0.8) {
         recommendations.add(
@@ -132,9 +128,7 @@ class AiInsightsService {
         );
       } else {
         recommendations.add(
-          'Great job! Your estimated usage is well within your Rs. ' +
-              home.monthlyBudget.toStringAsFixed(0) +
-              ' budget.',
+          'Great job! Your estimated usage is well within your Rs. ${home.monthlyBudget.toStringAsFixed(0)} budget.',
         );
       }
     }
@@ -143,10 +137,7 @@ class AiInsightsService {
       ..sort((a, b) => b.monthlyUnits.compareTo(a.monthlyUnits));
     final topAppliance = sorted.first;
     recommendations.add(
-      topAppliance.name +
-          ' is your highest energy consumer at ' +
-          topAppliance.monthlyUnits.toStringAsFixed(0) +
-          ' units/month. Reducing its daily usage by even 1 hour could meaningfully lower your bill.',
+      '${topAppliance.name} is your highest energy consumer at ${topAppliance.monthlyUnits.toStringAsFixed(0)} units/month. Reducing its daily usage by even 1 hour could meaningfully lower your bill.',
     );
 
     final coolingAppliances = appliances.where((a) => a.category == 'Cooling').toList();

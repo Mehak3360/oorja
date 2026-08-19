@@ -317,7 +317,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
                   children: [
                     Column(
                       children: [
-                        Text('${totalUnits.toStringAsFixed(1)}',
+                        Text(totalUnits.toStringAsFixed(1),
                             style: const TextStyle(
                                 color: AppTheme.textPrimary,
                                 fontSize: 18,

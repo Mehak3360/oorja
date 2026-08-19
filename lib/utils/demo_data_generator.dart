@@ -2,6 +2,8 @@ import '../models/room_model.dart';
 import '../models/appliance_model.dart';
 import '../repositories/room_repository.dart';
 import '../repositories/appliance_repository.dart';
+import '../repositories/daily_usage_repository.dart';
+import '../repositories/home_repository.dart';
 
 class DemoDataGenerator {
   static Future<void> generate(String homeId) async {
@@ -68,6 +70,10 @@ class DemoDataGenerator {
       },
     ];
 
+    // Track total weekly units across all appliances as we create them,
+    // so we can backfill a realistic daily average for the usage chart.
+    double totalWeeklyUnits = 0;
+
     for (final roomData in roomsData) {
       final room = RoomModel(
         roomId: '',
@@ -79,18 +85,40 @@ class DemoDataGenerator {
 
       final appliancesList = roomData['appliances'] as List<Map<String, dynamic>>;
       for (final a in appliancesList) {
+        final qty = a['qty'] as int;
+        final watt = a['watt'] as double;
+        final hours = a['hours'] as double;
+        final days = a['days'] as int;
+
         final appliance = ApplianceModel(
           applianceId: '',
           roomId: newRoomId,
           name: a['name'] as String,
           category: a['category'] as String,
-          quantity: a['qty'] as int,
-          wattage: a['watt'] as double,
-          hoursPerDay: a['hours'] as double,
-          daysPerWeek: a['days'] as int,
+          quantity: qty,
+          wattage: watt,
+          hoursPerDay: hours,
+          daysPerWeek: days,
         );
         await applianceRepo.addAppliance(appliance);
+
+        // Weekly units contributed by this appliance: (W * qty * hrs/day * days/week) / 1000
+        totalWeeklyUnits += (watt * qty * hours * days) / 1000;
       }
     }
+
+    // Backfill the past 6 days of usage history so "This Week's Usage" isn't
+    // empty right after generating demo data. Today's entry is logged
+    // separately by the Dashboard itself via logTodayUsage().
+    final avgDailyUnits = totalWeeklyUnits / 7;
+    final home = await HomeRepository().getHome(homeId);
+    final tariff = home?.tariffPerUnit ?? 0;
+
+    await DailyUsageRepository().backfillPastDays(
+      homeId,
+      avgDailyUnits,
+      tariff,
+      days: 6,
+    );
   }
 }

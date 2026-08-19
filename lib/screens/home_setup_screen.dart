@@ -36,6 +36,20 @@ class _HomeSetupScreenState extends State<HomeSetupScreen> {
     super.dispose();
   }
 
+  /// Providers in this app use slab (telescopic) billing, but the rest of the
+  /// app (Dashboard, Rooms, Report) works off a single flat tariffPerUnit.
+  /// To bridge the two without rewriting the calculation engine, we derive a
+  /// representative flat rate from the provider's slabs at a typical monthly
+  /// usage level (300 units/month is a common mid-size household benchmark).
+  double _estimatedFlatTariff(String providerName) {
+    final provider = ElectricityProviders.getByName(providerName);
+    if (provider == null || provider.slabs.isEmpty) return 0;
+
+    const typicalMonthlyUnits = 300.0;
+    final cost = ElectricityProviders.calculateSlabCost(provider, typicalMonthlyUnits);
+    return cost / typicalMonthlyUnits;
+  }
+
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -52,7 +66,7 @@ class _HomeSetupScreenState extends State<HomeSetupScreen> {
       monthlyBudget: double.parse(_budgetController.text.trim()),
       tariffPerUnit: _selectedProvider == 'Other / Custom'
           ? double.parse(_tariffController.text.trim())
-          : 0,
+          : _estimatedFlatTariff(_selectedProvider),
       setupComplete: true,
     );
 
@@ -68,7 +82,7 @@ class _HomeSetupScreenState extends State<HomeSetupScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(homeSetupProvider.errorMessage ?? 'Setup failed'),
-          backgroundColor: Colors.redAccent,
+          backgroundColor: AppTheme.danger,
         ),
       );
     }
@@ -77,6 +91,9 @@ class _HomeSetupScreenState extends State<HomeSetupScreen> {
   @override
   Widget build(BuildContext context) {
     final homeSetupProvider = context.watch<HomeSetupProvider>();
+    final estimatedTariff = _selectedProvider == 'Other / Custom'
+        ? null
+        : _estimatedFlatTariff(_selectedProvider);
 
     return Scaffold(
       backgroundColor: AppTheme.navyBackground,
@@ -173,6 +190,32 @@ class _HomeSetupScreenState extends State<HomeSetupScreen> {
                     setState(() => _selectedProvider = value!);
                   },
                 ),
+
+                // Auto-filled tariff preview — shown for all providers except Custom
+                if (estimatedTariff != null) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryBlue.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.2)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.info_outline_rounded, color: AppTheme.accentBlue, size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Estimated tariff for $_selectedProvider: ₹${estimatedTariff.toStringAsFixed(2)}/unit '
+                            '(based on typical usage — you can fine-tune this later in Profile).',
+                            style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 16),
 
                 // Monthly Budget
