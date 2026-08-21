@@ -9,9 +9,23 @@ import '../theme/glass_card.dart';
 import '../models/user_model.dart';
 import '../models/home_model.dart';
 import '../utils/demo_data_generator.dart';
+import '../utils/electricity_providers.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
+
+  /// Derives a representative flat tariff from a provider's slab structure
+  /// at a typical monthly usage (300 units), matching the same logic used
+  /// during initial home setup. Custom/manual providers fall back to their
+  /// existing stored value instead of being recalculated.
+  static double _estimatedFlatTariff(String providerName, double fallback) {
+    final provider = ElectricityProviders.getByName(providerName);
+    if (provider == null || provider.slabs.isEmpty) return fallback;
+
+    const typicalMonthlyUnits = 300.0;
+    final cost = ElectricityProviders.calculateSlabCost(provider, typicalMonthlyUnits);
+    return cost / typicalMonthlyUnits;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +100,6 @@ class ProfileScreen extends StatelessWidget {
               _sectionCard('Electricity', Icons.bolt_rounded, [
                 _infoRow('Provider', home?.electricityProvider ?? '-'),
                 _infoRow('Monthly Budget', '₹${home?.monthlyBudget.toStringAsFixed(0) ?? '-'}'),
-                _infoRow('Tariff', '₹${home?.tariffPerUnit.toStringAsFixed(2) ?? '-'} / unit'),
               ]),
               const SizedBox(height: 20),
               OutlinedButton.icon(
@@ -298,104 +311,140 @@ class ProfileScreen extends StatelessWidget {
     final houseTypeController = TextEditingController(text: home.houseType);
     final familyMembersController = TextEditingController(text: home.familyMembers.toString());
     final cityController = TextEditingController(text: home.city);
-    final providerController = TextEditingController(text: home.electricityProvider);
     final budgetController = TextEditingController(text: home.monthlyBudget.toString());
-    final tariffController = TextEditingController(text: home.tariffPerUnit.toString());
     final formKey = GlobalKey<FormState>();
+
+    // Fall back to the first known provider if the stored name doesn't match
+    // any entry in the database (e.g. legacy custom text values).
+    String selectedProvider = ElectricityProviders.names.contains(home.electricityProvider)
+        ? home.electricityProvider
+        : ElectricityProviders.names.first;
 
     showDialog(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: AppTheme.cardBackground,
-          title: const Text('Edit Home Details', style: TextStyle(color: AppTheme.textPrimary)),
-          content: SingleChildScrollView(
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: houseTypeController,
-                    style: const TextStyle(color: AppTheme.textPrimary),
-                    decoration: const InputDecoration(labelText: 'House Type'),
-                    validator: (value) => (value == null || value.isEmpty) ? 'Required' : null,
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            return AlertDialog(
+              backgroundColor: AppTheme.cardBackground,
+              title: const Text('Edit Home Details', style: TextStyle(color: AppTheme.textPrimary)),
+              content: SingleChildScrollView(
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: houseTypeController,
+                        style: const TextStyle(color: AppTheme.textPrimary),
+                        decoration: const InputDecoration(labelText: 'House Type'),
+                        validator: (value) => (value == null || value.isEmpty) ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: familyMembersController,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(color: AppTheme.textPrimary),
+                        decoration: const InputDecoration(labelText: 'Family Members'),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) return 'Required';
+                          if (int.tryParse(value) == null) return 'Enter a valid number';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: cityController,
+                        style: const TextStyle(color: AppTheme.textPrimary),
+                        decoration: const InputDecoration(labelText: 'City'),
+                        validator: (value) => (value == null || value.isEmpty) ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 12),
+                      // Provider is a dropdown tied to the tariff database, not free text.
+                      // The tariff itself is never shown or manually entered here — it's
+                      // recalculated silently in the background whenever the provider changes.
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedProvider,
+                        dropdownColor: AppTheme.cardBackground,
+                        style: const TextStyle(color: AppTheme.textPrimary),
+                        decoration: const InputDecoration(labelText: 'Electricity Provider'),
+                        items: ElectricityProviders.names.map((name) {
+                          return DropdownMenuItem(value: name, child: Text(name));
+                        }).toList(),
+                        onChanged: (value) {
+                          setDialogState(() => selectedProvider = value!);
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      // Read-only tariff preview — recalculates live as the provider
+                      // changes, but is never directly editable by the user.
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryBlue.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.2)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.bolt_rounded, color: AppTheme.accentBlue, size: 16),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Tariff for $selectedProvider: ₹${_estimatedFlatTariff(selectedProvider, home.tariffPerUnit).toStringAsFixed(2)}/unit',
+                                style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: budgetController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        style: const TextStyle(color: AppTheme.textPrimary),
+                        decoration: const InputDecoration(labelText: 'Monthly Budget (₹)'),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) return 'Required';
+                          if (double.tryParse(value) == null) return 'Enter a valid amount';
+                          return null;
+                        },
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: familyMembersController,
-                    keyboardType: TextInputType.number,
-                    style: const TextStyle(color: AppTheme.textPrimary),
-                    decoration: const InputDecoration(labelText: 'Family Members'),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return 'Required';
-                      if (int.tryParse(value) == null) return 'Enter a valid number';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: cityController,
-                    style: const TextStyle(color: AppTheme.textPrimary),
-                    decoration: const InputDecoration(labelText: 'City'),
-                    validator: (value) => (value == null || value.isEmpty) ? 'Required' : null,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: providerController,
-                    style: const TextStyle(color: AppTheme.textPrimary),
-                    decoration: const InputDecoration(labelText: 'Electricity Provider'),
-                    validator: (value) => (value == null || value.isEmpty) ? 'Required' : null,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: budgetController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    style: const TextStyle(color: AppTheme.textPrimary),
-                    decoration: const InputDecoration(labelText: 'Monthly Budget (₹)'),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return 'Required';
-                      if (double.tryParse(value) == null) return 'Enter a valid amount';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: tariffController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    style: const TextStyle(color: AppTheme.textPrimary),
-                    decoration: const InputDecoration(labelText: 'Tariff (₹ per unit)'),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return 'Required';
-                      if (double.tryParse(value) == null) return 'Enter a valid amount';
-                      return null;
-                    },
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
-            ),
-            TextButton(
-              onPressed: () async {
-                if (!formKey.currentState!.validate()) return;
-                await HomeRepository().updateHome(uid, {
-                  'houseType': houseTypeController.text.trim(),
-                  'familyMembers': int.parse(familyMembersController.text.trim()),
-                  'city': cityController.text.trim(),
-                  'electricityProvider': providerController.text.trim(),
-                  'monthlyBudget': double.parse(budgetController.text.trim()),
-                  'tariffPerUnit': double.parse(tariffController.text.trim()),
-                });
-                if (dialogContext.mounted) Navigator.pop(dialogContext);
-              },
-              child: const Text('Save', style: TextStyle(color: AppTheme.accentBlue)),
-            ),
-          ],
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    if (!formKey.currentState!.validate()) return;
+
+                    // Always save the tariff that matches what's currently shown in
+                    // the preview above, so the stored value never drifts from the display.
+                    final newTariff = _estimatedFlatTariff(selectedProvider, home.tariffPerUnit);
+
+                    await HomeRepository().updateHome(uid, {
+                      'houseType': houseTypeController.text.trim(),
+                      'familyMembers': int.parse(familyMembersController.text.trim()),
+                      'city': cityController.text.trim(),
+                      'electricityProvider': selectedProvider,
+                      'monthlyBudget': double.parse(budgetController.text.trim()),
+                      'tariffPerUnit': newTariff,
+                    });
+
+                    if (dialogContext.mounted) Navigator.pop(dialogContext);
+                  },
+                  child: const Text('Save', style: TextStyle(color: AppTheme.accentBlue)),
+                ),
+              ],
+            );
+          },
         );
       },
     );
