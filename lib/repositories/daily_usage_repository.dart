@@ -7,22 +7,22 @@ class DailyUsageRepository {
       FirebaseFirestore.instance.collection('daily_usage_logs');
 
   Future<void> logTodayUsage(String homeId, double units, double cost) async {
+    // Don't overwrite today's log with a zero from a transient empty snapshot
+    if (units <= 0) return;
+
     final today = DateTime.now();
     final dateStr =
         '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
 
     final docId = '${homeId}_$dateStr';
 
-    // Only write if today's log doesn't already exist
-    final existing = await _logs.doc(docId).get();
-    if (!existing.exists) {
-      await _logs.doc(docId).set({
-        'homeId': homeId,
-        'date': dateStr,
-        'units': units,
-        'cost': cost,
-      });
-    }
+    // Always update today's log with the latest calculated value
+    await _logs.doc(docId).set({
+      'homeId': homeId,
+      'date': dateStr,
+      'units': units,
+      'cost': cost,
+    });
   }
 
   Future<List<DailyUsageModel>> getLastNDays(String homeId, int n) async {
