@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart' as app_auth;
@@ -12,6 +13,7 @@ import '../theme/app_theme.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../repositories/daily_usage_repository.dart';
 import '../models/daily_usage_model.dart';
+import '../services/live_reading_service.dart';
 import 'energy_report_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -82,6 +84,11 @@ class DashboardScreen extends StatelessWidget {
                         const SizedBox(height: 14),
 
                         _healthScoreCard(healthScore, healthColor),
+                        const SizedBox(height: 24),
+
+                        _sectionTitle('Live Power'),
+                        const SizedBox(height: 12),
+                        _LiveReadingsCard(appliances: appliances),
                         const SizedBox(height: 24),
 
                         _sectionTitle('Room-wise Consumption'),
@@ -465,5 +472,192 @@ class DashboardScreen extends StatelessWidget {
         titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
       );
     });
+  }
+}
+
+/// Live readings from the ESP32 (Realtime Database `/current`).
+/// StatefulWidget so the stream is created once and a timer can
+/// re-check "offline" status even when no new data arrives.
+class _LiveReadingsCard extends StatefulWidget {
+  final List<ApplianceModel> appliances;
+  const _LiveReadingsCard({required this.appliances});
+
+  @override
+  State<_LiveReadingsCard> createState() => _LiveReadingsCardState();
+}
+
+class _LiveReadingsCardState extends State<_LiveReadingsCard> {
+  late final Stream<Map<String, LiveReading>> _stream;
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    _stream = LiveReadingService.instance.watch();
+    _ticker = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  String? _linkedApplianceName(String channel) {
+    for (final a in widget.appliances) {
+      if (a.isMetered && a.deviceId == channel) return a.name;
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<Map<String, LiveReading>>(
+      stream: _stream,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return _message(
+            Icons.sensors_off_rounded,
+            'Could not connect to live sensor',
+            'Check internet and Realtime Database rules.',
+          );
+        }
+        final readings = snapshot.data;
+        if (readings == null) {
+          return const SizedBox(
+            height: 80,
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (readings.isEmpty) {
+          return _message(
+            Icons.sensors_off_rounded,
+            'No sensor data yet',
+            'Waiting for the ESP32 to send readings.',
+          );
+        }
+
+        return Container(
+          padding: const EdgeInsets.all(18),
+          decoration: AppTheme.cardDecoration(),
+          child: Column(
+            children: [
+              for (int i = 0; i < LiveReadingService.channels.length; i++) ...[
+                if (i > 0)
+                  Divider(height: 22, color: Colors.white.withValues(alpha: 0.06)),
+                _channelRow(LiveReadingService.channels[i], readings[LiveReadingService.channels[i]]),
+              ],
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Power estimated at 230 V (current-only sensor)',
+                  style: TextStyle(color: AppTheme.textMuted, fontSize: 11),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _channelRow(String channel, LiveReading? reading) {
+    final linkedName = _linkedApplianceName(channel);
+    final title = linkedName ?? '$channel (not linked)';
+
+    String status;
+    Color statusColor;
+    if (reading == null) {
+      status = 'No data';
+      statusColor = AppTheme.textMuted;
+    } else if (reading.isStale) {
+      status = 'Offline';
+      statusColor = AppTheme.danger;
+    } else if (reading.amps > 0) {
+      status = 'Live';
+      statusColor = AppTheme.success;
+    } else {
+      status = 'Idle';
+      statusColor = AppTheme.textMuted;
+    }
+
+    final showValues = reading != null && !reading.isStale;
+
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: statusColor.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(Icons.bolt_rounded, color: statusColor, size: 18),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                    color: AppTheme.textPrimary, fontWeight: FontWeight.w600, fontSize: 14),
+              ),
+              const SizedBox(height: 2),
+              Row(
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(status, style: TextStyle(color: statusColor, fontSize: 11)),
+                ],
+              ),
+            ],
+          ),
+        ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              showValues ? '${reading.watts.toStringAsFixed(0)} W' : '--',
+              style: const TextStyle(
+                  color: AppTheme.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              showValues ? '${reading.amps.toStringAsFixed(2)} A' : '--',
+              style: TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _message(IconData icon, String title, String subtitle) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+      decoration: AppTheme.cardDecoration(),
+      child: Column(
+        children: [
+          Icon(icon, color: AppTheme.textMuted, size: 30),
+          const SizedBox(height: 10),
+          Text(title,
+              style: const TextStyle(
+                  color: AppTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 4),
+          Text(subtitle,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+        ],
+      ),
+    );
   }
 }
