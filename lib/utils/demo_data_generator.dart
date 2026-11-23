@@ -10,6 +10,31 @@ class DemoDataGenerator {
     final roomRepo = RoomRepository();
     final applianceRepo = ApplianceRepository();
 
+    // If this home already has rooms, do NOT create another full set of demo
+    // rooms/appliances (that doubled the usage numbers every time the button
+    // was pressed). Just refresh the missing past days of the usage chart.
+    final existingRooms = await roomRepo.watchRooms(homeId).first;
+    if (existingRooms.isNotEmpty) {
+      final roomIds = existingRooms.map((r) => r.roomId).toList();
+      final existingAppliances =
+          await applianceRepo.watchAllAppliancesForHome(roomIds).first;
+
+      double existingWeeklyUnits = 0;
+      for (final a in existingAppliances) {
+        existingWeeklyUnits +=
+            (a.wattage * a.quantity * a.hoursPerDay * a.daysPerWeek) / 1000;
+      }
+
+      final home = await HomeRepository().getHome(homeId);
+      await DailyUsageRepository().backfillPastDays(
+        homeId,
+        existingWeeklyUnits / 7,
+        home?.tariffPerUnit ?? 0,
+        days: 6,
+      );
+      return;
+    }
+
     // Define 6 rooms with realistic appliances
     final roomsData = [
       {

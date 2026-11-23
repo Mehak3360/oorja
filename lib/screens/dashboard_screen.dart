@@ -64,8 +64,6 @@ class DashboardScreen extends StatelessWidget {
                   final topAppliances = CalculationEngine.topConsumers(appliances, 5);
                   final roomWise = CalculationEngine.roomWiseConsumption(rooms, appliances);
 
-                  DailyUsageRepository().logTodayUsage(uid, totalUnits, totalCost);
-
                   return SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                     child: Column(
@@ -102,7 +100,13 @@ class DashboardScreen extends StatelessWidget {
                         _sectionTitle("This Week's Usage"),
                         const SizedBox(height: 12),
                         FutureBuilder<List<DailyUsageModel>>(
-                          future: DailyUsageRepository().getLastNDays(uid, 7),
+                          // Log today first, THEN read the week, so the chart
+                          // never shows a stale value for today.
+                          // totalUnits / totalCost are MONTHLY figures; the daily
+                          // log stores one day, so divide by 30.
+                          future: DailyUsageRepository()
+                              .logTodayUsage(uid, totalUnits / 30, totalCost / 30)
+                              .then((_) => DailyUsageRepository().getLastNDays(uid, 7)),
                           builder: (context, weekSnapshot) {
                             if (!weekSnapshot.hasData) {
                               return const SizedBox(
